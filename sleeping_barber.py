@@ -31,7 +31,7 @@ class Customer(threading.Thread):       # Producer Thread
     def run(self):
         if not self.queue.full():  # Check queue size
             EVENT.set()  # Sets EVENT flag to True i.e. Customer available in the Queue
-            EVENT.clear()  # A lerts Barber that their is a Customer available in the Queue
+            EVENT.clear()  # Alerts Barber that their is a Customer available in the Queue
         else:
             # If Queue is full, Customer leaves.
             print("Queue full, customer has left.")
@@ -47,35 +47,17 @@ class Customer(threading.Thread):       # Producer Thread
         Earnings += payment
 
 
-class Barber(threading.Thread):     # Consumer Thread
-    def __init__(self, queue):      # Constructor passes Global Queue (all_customers) to Class
+class Barber(threading.Thread):
+    def __init__(self, queue):
         threading.Thread.__init__(self)
         self.queue = queue
-        self.sleep = True   # No Customers in Queue therefore Barber sleeps by default
-
-    def is_empty(self):  # Simple function that checks if there is a customer in the Queue and if so
-        if self.queue.empty():
-            self.sleep = True   # If nobody in the Queue Barber sleeps.
-        else:
-            self.sleep = False  # Else he wakes up.
-        print("------------------\nBarber sleep {}\n------------------".format(self.sleep))
 
     def run(self):
         global SHOP_OPEN
         while SHOP_OPEN:
-            while self.queue.empty():
-                # Waits for the Event flag to be set, Can be seen as the Barber Actually sleeping.
-                EVENT.wait()
-                print("Barber is sleeping...")
-            print("Barber is awake.")
-            customer = self.queue
-            self.is_empty()
-            # FIFO Queue So first customer added is gotten.
-            customer = customer.get()
-            customer.trim()  # Customers Hair is being cut
-            customer = self.queue
-            customer.task_done()
-            print(self.name)    # Which Barber served the Customer
+            customer = self.queue.get()
+            customer.trim()
+            self.queue.task_done()
 
 
 def wait():
@@ -96,16 +78,16 @@ if __name__ == '__main__':
         # Adding the Barber Thread to an array for easy referencing later on.
         barbers.append(b)
     for c in range(10):  # Loop that creates infinite Customers
-        print("----")
+        print("----bahman",c)
         # Simple Tracker too see the qsize (NOT RELIABLE!)
         print(all_customers.qsize())
         wait()
         c = Customer(all_customers)  # Passing Queue object to Customer class
         all_customers.put(c)    # Puts the Customer Thread in the Queue
-        c.run()
+        c.start()
     all_customers.join()    # Terminates all Customer Threads
     print("Barbers payment total: " + str(Earnings))
     SHOP_OPEN = False
-    for i in barbers:
-        i.join()    # Terminates all Barbers
+    for barber in barbers:
+        barber.join()    # Terminates all Barbers
         # Program hangs due to infinite loop in Barber Class, use ctrl-z to exit.
